@@ -54,7 +54,7 @@ router.post('/createuser', [
                 }
             }
             const authToken = jwt.sign(data, JWT_SECRET);
-            // console.log(authToken);
+
             success = true;
             res.json({ success, authToken })
 
@@ -65,5 +65,56 @@ router.post('/createuser', [
     }
 
 })
+
+// ROUTE 2
+// LOGGING IN A USER 
+// POST TYPE /api/auth/login
+router.post('/login', [
+    body('username', 'Cannot be blank').exists(),
+    body('password', 'Cannot be blank').exists(),
+], async (req, res) => {
+    let success = false;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success, errors: errors.array() });
+    }
+
+    const { username, password } = req.body;
+
+    try {
+
+        // checking if username or email are unique or not
+        let user = await User.findOne({ username });
+        if (!user) {
+            success = false;
+            return res.status(500).json({ "error": "Credentials are Wrong. Please try again" });
+        } else {
+
+            // Validating password
+            const passwordCompare = await bcrypt.compare(password, user.password);
+            if (!passwordCompare) {
+                success = false;
+                return res.status(500).json({ "error": "Credentials are Wrong. Please try again" });
+            }
+
+            const data = {
+                user: {
+                    id: user.id
+                }
+            }
+            const authToken = jwt.sign(data, JWT_SECRET);
+
+            success = true;
+            res.json({ success, authToken })
+
+        }
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).send("Internal Error Occured.")
+    }
+
+})
+
 
 module.exports = router
